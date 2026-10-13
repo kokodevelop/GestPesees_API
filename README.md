@@ -12,7 +12,9 @@ BD éditeur B (SQL Srv)┼─ Agent (service Windows, 1 par site) ─HTTPS sorta
 |---|---|
 | `src/GestPesees.Contracts` | DTO partagés (pesée, lot, résultat) |
 | `src/GestPesees.Api` | API ASP.NET Core 8 : `POST /api/v1/pesees/batch`, `GET /api/v1/pesees/ping` |
-| `src/GestPesees.Agent` | Service Windows : lit les BD éditeurs en lecture seule et pousse vers l'API |
+| `src/GestPesees.Agent.Core` | Bibliothèque `netstandard2.0` commune aux agents : lecture BD/CSV, curseur, client API, boucle de synchro |
+| `src/GestPesees.Agent` | Agent service Windows **.NET 8** (Windows 10 1607+ / Server 2012+) |
+| `src/GestPesees.Agent.Net48` | Agent service Windows **.NET Framework 4.8** (Windows 7 SP1+ / Server 2008 R2 SP1+), mêmes `appsettings.json` et comportement |
 | `db/001_schema.sql` | Schéma de la base centrale |
 | `tests/` | Tests xUnit de l'agent |
 
@@ -28,7 +30,9 @@ BD éditeur B (SQL Srv)┼─ Agent (service Windows, 1 par site) ─HTTPS sorta
 2. API : renseigner `ConnectionStrings:Central`, `dotnet run --project src/GestPesees.Api` (HTTPS requis en production, derrière IIS/Kestrel).
 3. Agent, sur chaque site : `dotnet publish src/GestPesees.Agent -c Release -r win-x64 --self-contained -o publish`, éditer `appsettings.json`, puis
    `sc create "GestPesees Agent" binPath= "C:\GestPesees\GestPesees.Agent.exe" start= auto`.
-4. Tests : `dotnet test`.
+4. Agent .NET Framework 4.8 (anciens postes) : `dotnet build src/GestPesees.Agent.Net48 -c Release` (ou Visual Studio), copier le dossier `bin\Release\net48` sur le poste (prérequis : .NET Framework 4.8 installé), éditer `appsettings.json` (même format que l'agent .NET 8), tester en console en lançant `GestPesees.Agent.Net48.exe`, puis
+   `sc create "GestPesees Agent" binPath= "C:\GestPesees\GestPesees.Agent.Net48.exe" start= auto`. Les journaux sont dans `logs\agent-AAAAMMJJ.log` (30 jours conservés).
+5. Tests : `dotnet test`.
 
 ## Source alternative : dossier CSV
 Pour un éditeur qui refuse l'accès à sa base, le logiciel de pesée (ou sa tâche d'export planifiée) dépose des CSV dans un dossier et l'agent les lit : `"Provider": "Csv"` (exemple `EditeurC` dans `appsettings.json`).
@@ -39,6 +43,11 @@ Pour un éditeur qui refuse l'accès à sa base, le logiciel de pesée (ou sa t�
 - Une ligne dont la date est illisible est envoyée quand même et rejetée par l'API (compteur `Rejected` dans `SyncLog`), pour ne pas bloquer la source.
 - Penser à purger régulièrement les vieux fichiers du dossier d'export.
 
+## Anciens postes (agent .NET Framework 4.8)
+- Installer un seul des deux agents par poste ; ils lisent le même `appsettings.json` et le même fichier de curseur `state.json`.
+- **TLS 1.2** : l'agent le force, mais Windows 7 doit avoir le SP1 et la mise à jour KB3140245 (activation de TLS 1.2 pour WinHTTP/.NET). Sans cela, l'appel HTTPS vers l'API échoue.
+- **SQL Server ancien** (2008/2012) : `Microsoft.Data.SqlClient` chiffre par défaut. Si la connexion échoue, ajouter `Encrypt=False` (ou `TrustServerCertificate=true`) à la chaîne de connexion de la source.
+- Alternative : un seul agent .NET 8 sur un PC récent du site qui atteint la base du pont via le réseau.
+
 ## Limites connues
-- .NET 8 exige Windows 10 1607+ / Server 2012+. Les postes plus anciens (Windows 7/8.1) nécessiteraient un agent .NET Framework 4.8 ; le projet n'en contient pas encore.
 - Le curseur doit être strictement croissant (ID auto-incrémenté ou horodatage unique). Les lignes modifiées après envoi ne sont pas renvoyées.

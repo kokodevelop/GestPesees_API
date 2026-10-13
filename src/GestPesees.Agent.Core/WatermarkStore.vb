@@ -27,6 +27,10 @@ Public Class WatermarkStore
         _values(source) = value
         Dim tmp = _path & ".tmp"
         File.WriteAllText(tmp, JsonSerializer.Serialize(_values))
-        File.Move(tmp, _path, True)
+        If File.Exists(_path) Then
+            File.Replace(tmp, _path, Nothing)
+        Else
+            File.Move(tmp, _path)
+        End If
     End Sub
 End Class

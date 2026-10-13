@@ -62,7 +62,7 @@ Public Class CsvSourceReader
 
             Dim fs As CsvFileState = Nothing
             If Not state.TryGetValue(name, fs) Then fs = New CsvFileState()
-            Dim head = If(records.Count > 0, String.Join(delimiter, records(0)), "")
+            Dim head = If(records.Count > 0, String.Join(delimiter.ToString(), records(0)), "")
             If fs.Count > records.Count OrElse (fs.Count > 0 AndAlso fs.Head <> head) Then
                 fs.Count = 0 ' fichier remplacé ou tronqué : on renvoie (l'API dédoublonne)
             End If
