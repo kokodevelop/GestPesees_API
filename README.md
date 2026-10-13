@@ -30,7 +30,15 @@ BD éditeur B (SQL Srv)┼─ Agent (service Windows, 1 par site) ─HTTPS sorta
    `sc create "GestPesees Agent" binPath= "C:\GestPesees\GestPesees.Agent.exe" start= auto`.
 4. Tests : `dotnet test`.
 
+## Source alternative : dossier CSV
+Pour un éditeur qui refuse l'accès à sa base, le logiciel de pesée (ou sa tâche d'export planifiée) dépose des CSV dans un dossier et l'agent les lit : `"Provider": "Csv"` (exemple `EditeurC` dans `appsettings.json`).
+- `ColumnMap` associe les noms standard aux colonnes du CSV (par nom d'en-tête, ou par n° de colonne base 0 si `HasHeader` est faux). `SourceId` et `WeighedAt` sont obligatoires ; les colonnes non mappées partent dans `ExtraJson`.
+- Réglages d'export : `Delimiter`, `Encoding` (ex. `windows-1252`), `Culture`, `DateFormat`, `DecimalSeparator`.
+- Fonctionne avec un fichier par pesée comme avec un fichier journalier complété au fil de l'eau : l'agent mémorise, par fichier, le nombre de lignes déjà envoyées. Une ligne en cours d'écriture (sans saut de ligne final) est ignorée jusqu'au cycle suivant.
+- Un fichier remplacé par un autre de même nom (première ligne différente) est relu en entier ; l'API dédoublonne.
+- Une ligne dont la date est illisible est envoyée quand même et rejetée par l'API (compteur `Rejected` dans `SyncLog`), pour ne pas bloquer la source.
+- Penser à purger régulièrement les vieux fichiers du dossier d'export.
+
 ## Limites connues
 - .NET 8 exige Windows 10 1607+ / Server 2012+. Les postes plus anciens (Windows 7/8.1) nécessiteraient un agent .NET Framework 4.8 ; le projet n'en contient pas encore.
 - Le curseur doit être strictement croissant (ID auto-incrémenté ou horodatage unique). Les lignes modifiées après envoi ne sont pas renvoyées.
-- Pour les éditeurs qui refusent l'accès à leur base : prévoir une source alternative (dossier d'export CSV/XML surveillé) — non implémentée.

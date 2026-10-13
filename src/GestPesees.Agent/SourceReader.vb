@@ -11,12 +11,15 @@ Public Class ReadResult
 End Class
 
 Public Class SourceReader
+    Implements ISourceReader
+
     Private Shared ReadOnly Known As New HashSet(Of String)(
         {"wm", "sourceid", "weighedat", "plate", "product", "thirdparty", "grosskg", "tarekg", "netkg"},
         StringComparer.OrdinalIgnoreCase)
 
     Public Async Function ReadBatchAsync(src As SourceOptions, watermark As String, batchSize As Integer,
-                                         ct As Threading.CancellationToken) As Task(Of ReadResult)
+                                         ct As Threading.CancellationToken) As Task(Of ReadResult) _
+        Implements ISourceReader.ReadBatchAsync
         Dim result As New ReadResult()
         Using cn As DbConnection = CreateConnection(src)
             Await cn.OpenAsync(ct)

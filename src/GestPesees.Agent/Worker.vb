@@ -13,7 +13,8 @@ Public Class Worker
 
     Private ReadOnly _opt As AgentOptions
     Private ReadOnly _log As ILogger(Of Worker)
-    Private ReadOnly _reader As New SourceReader()
+    Private ReadOnly _dbReader As New SourceReader()
+    Private ReadOnly _csvReader As New CsvSourceReader()
     Private ReadOnly _api As ApiClient
     Private ReadOnly _state As WatermarkStore
 
@@ -43,10 +44,15 @@ Public Class Worker
         End While
     End Function
 
+    Private Function ReaderFor(src As SourceOptions) As ISourceReader
+        If String.Equals(src.Provider, "Csv", StringComparison.OrdinalIgnoreCase) Then Return _csvReader
+        Return _dbReader
+    End Function
+
     Private Async Function SyncSourceAsync(src As SourceOptions, ct As Threading.CancellationToken) As Task
         Do
             Dim wm = _state.Get(src.Name, src.InitialWatermark)
-            Dim read = Await _reader.ReadBatchAsync(src, wm, _opt.BatchSize, ct)
+            Dim read = Await ReaderFor(src).ReadBatchAsync(src, wm, _opt.BatchSize, ct)
             If read.Pesees.Count = 0 Then Return
 
             Dim batch As New PeseeBatch With {
