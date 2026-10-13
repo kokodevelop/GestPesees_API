@@ -16,10 +16,31 @@ Public Class SyncEngine
     Private ReadOnly _state As WatermarkStore
 
     Public Sub New(opt As AgentOptions, log As IAgentLog)
+        Validate(opt)
         _opt = opt
         _log = log
         _api = New ApiClient(opt)
         _state = New WatermarkStore(Path.Combine(AppContext.BaseDirectory, opt.StatePath))
+    End Sub
+
+    ''' <summary>Échoue au démarrage avec un message clair plutôt qu'avec une erreur obscure plus tard.</summary>
+    Private Shared Sub Validate(opt As AgentOptions)
+        Dim uri As Uri = Nothing
+        If String.IsNullOrWhiteSpace(opt.SiteCode) Then
+            Throw New InvalidOperationException("Configuration : Agent:SiteCode manquant (appsettings.json introuvable ou section Agent vide ?)")
+        End If
+        If Not Uri.TryCreate(opt.ApiUrl, UriKind.Absolute, uri) Then
+            Throw New InvalidOperationException($"Configuration : Agent:ApiUrl invalide ('{opt.ApiUrl}'), attendu par ex. https://api.exemple.fr")
+        End If
+        If String.IsNullOrWhiteSpace(opt.ApiKey) Then
+            Throw New InvalidOperationException("Configuration : Agent:ApiKey manquant")
+        End If
+        If opt.Sources Is Nothing OrElse opt.Sources.Count = 0 Then
+            Throw New InvalidOperationException("Configuration : aucune source dans Agent:Sources")
+        End If
+        If opt.BatchSize < 1 OrElse opt.PollSeconds < 1 Then
+            Throw New InvalidOperationException("Configuration : BatchSize et PollSeconds doivent être >= 1")
+        End If
     End Sub
 
     ''' <summary>Boucle de synchronisation jusqu'à l'annulation.</summary>
