@@ -21,8 +21,13 @@ Public Class ApiClient
         Dim json = JsonSerializer.Serialize(batch)
         Using content As New StringContent(json, Encoding.UTF8, "application/json")
             Using resp = Await _http.PostAsync("api/v1/pesees/batch", content, ct)
-                resp.EnsureSuccessStatusCode()
                 Dim body = Await resp.Content.ReadAsStringAsync()
+                If Not resp.IsSuccessStatusCode Then
+                    ' Statut + extrait de la réponse : permet de reconnaître un autre serveur, un proxy, une clé refusée...
+                    Dim excerpt = If(body.Length > 300, body.Substring(0, 300) & "...", body)
+                    Throw New HttpRequestException(
+                        $"POST {New Uri(_http.BaseAddress, "api/v1/pesees/batch")} -> {CInt(resp.StatusCode)} {resp.ReasonPhrase}. Réponse : {excerpt}")
+                End If
                 Return JsonSerializer.Deserialize(Of PeseeBatchResult)(body, JsonOptions)
             End Using
         End Using
