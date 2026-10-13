@@ -38,7 +38,7 @@ Public Class CsvSourceTests
             Dim p = Assert.Single(r.Pesees)
             Assert.Equal("T1", p.SourceId)
             Assert.Equal(New DateTime(2026, 3, 1, 8, 15, 0), p.WeighedAt)
-            Assert.Equal(1234.5D, p.NetKg)
+            Assert.Equal(1234.5D, p.NetKg.Value)
             Assert.Equal("Paul", p.Extra("Chauffeur"))
         Finally
             Directory.Delete(dir, True)
