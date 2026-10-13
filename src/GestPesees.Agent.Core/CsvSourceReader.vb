@@ -125,9 +125,9 @@ Public Class CsvSourceReader
             ElseIf c = delimiter Then
                 fields.Add(sb.ToString())
                 sb.Clear()
-            ElseIf c = ControlChars.Cr Then
+            ElseIf c = ChrW(13) Then
                 ' ignoré : \r\n et \n sont traités pareil
-            ElseIf c = ControlChars.Lf Then
+            ElseIf c = ChrW(10) Then
                 fields.Add(sb.ToString())
                 sb.Clear()
                 If Not (fields.Count = 1 AndAlso fields(0).Length = 0) Then records.Add(fields.ToArray())
