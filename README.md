@@ -43,6 +43,13 @@ Pour un éditeur qui refuse l'accès à sa base, le logiciel de pesée (ou sa t�
 - Une ligne dont la date est illisible est envoyée quand même et rejetée par l'API (compteur `Rejected` dans `SyncLog`), pour ne pas bloquer la source.
 - Penser à purger régulièrement les vieux fichiers du dossier d'export.
 
+## Éditeur GestPontPro (MySQL)
+Fichiers : `samples/gestpontpro.source.json` (source à ajouter dans `Agent:Sources`), `db/mysql/gestpontpro_requete.sql` (la même requête, lisible, commentée), `db/mysql/gestpontpro_lecture_seule.sql` (compte `SELECT` seul).
+- Seules les pesées **terminées** (`Statut = 'TERMINEE'`, seconde pesée faite) sont envoyées. `WeighedAt` est la date de **seconde pesée** (`DatePesee` est la date d'import/création, pas celle de la pesée).
+- **Curseur composite** `(DateDeuxiemePesee, IdPesee)` et non `IdPesee` seul : l'ID est attribué à la première pesée, un camion qui termine plus tard qu'un autre serait sinon perdu. Un délai de sécurité de 10 s évite de dépasser une ligne en cours d'écriture (suppose que l'horloge du serveur MySQL est celle du poste de pesée).
+- `SourceId` = `IdPesee`. `NumTicket`, mouvement (entrant/sortant), client, fournisseur, chauffeur, transporteur, origine, destination, commande, refaction, prix, etc. partent dans `ExtraJson`.
+- Limite : une pesée modifiée ou annulée **après** son envoi n'est pas renvoyée (voir « Limites connues »).
+
 ## Anciens postes (agent .NET Framework 4.8)
 - Installer un seul des deux agents par poste ; ils lisent le même `appsettings.json` et le même fichier de curseur `state.json`.
 - **TLS 1.2** : l'agent le force, mais Windows 7 doit avoir le SP1 et la mise à jour KB3140245 (activation de TLS 1.2 pour WinHTTP/.NET). Sans cela, l'appel HTTPS vers l'API échoue.
